@@ -1,46 +1,43 @@
-import argparse
-import json
 import os
+import json
+import argparse
 import tempfile
- 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("It is our storage!")
- 
-    parser.add_argument("--key", type=str, help="what is your key?")
- 
-    parser.add_argument(
-        "--val", type=str, default=None, help="what is your value?")
- 
-    args = parser.parse_args()
-    our_key = args.key
-    our_value = args.val
-   
-    storage_path = os.path.join(tempfile.gettempdir(), "storage.data")
- 
-    # В любом случае потребуется файл как для чтения так и для записи, поэтому
-    # если файла не существует, то мы просто создаем открывая для записи.
-    # Если файл существует, то берем из него данные в словарь, если не
-    # существует или он пустой, то создаем пустой словарь
-    if os.path.exists(storage_path):
-        with open(storage_path) as f:
-            # Обработка на случай если файл пустой
-            try:
-                data = json.load(f)
-            except json.decoder.JSONDecodeError:
-                data = {}
+
+def read_data(storage_path):
+    if not os.path.exists(storage_path):
+        return {}
+    
+    with open(storage_path, 'r') as file:
+        raw_data = file.read()
+        if raw_data:
+            return json.loads(raw_data)
+        return {}
+
+def write_data(storage_path, data):
+    with open(storage_path, 'w') as f:
+        f.write(json.dumps(data))
+    
+def parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--key', help='Key')
+    parser.add_argument('--val', help='Value')
+    return parser.parse_args()
+
+def put(storage_path, key, value):
+    data = read_data(storage_path)
+    data[key] = data.get(key, list())
+    data[key].append(value)
+    write_data(storage_path,data)
+
+def get(storage_path, key):
+    args = parse()
+
+    if args.key and args.val:
+        put(storage_path, args.key, args.val)
+    elif args.key:
+        print(*get(storage_path, args.key), sep=',')
     else:
-        with open(storage_path, 'w') as f:
-            data = {}
-   
-    if our_value:
-        # Довольно удобный метод словаря, если ключа нет, то создается
-        # ключ с пустым списком к которому добавляем значения
-        data.setdefault(our_key, []).append(our_value)
-        with open(storage_path, 'w') as f:
-            json.dump(data, f)
-    else:
-        # Получаем список из словаря или пустую строку, если ключа нет,
-        # это чтобы проще было работать с join
-        result = ', '.join(data.get(our_key, ''))
-        # Если result пустая строка, то выводим None
-        print(result or None)
+        print('invalid parameters')
+if __name__ == '__main__':
+    storage_path = os.path.join(tempfile.gettempdir(), 'storage.data')
+    main(storade_path)
